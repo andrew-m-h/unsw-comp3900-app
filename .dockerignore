@@ -1,0 +1,7 @@
+.git
+.gitignore
+bin/
+infrastructure/
+*.md
+Dockerfile
+.dockerignore

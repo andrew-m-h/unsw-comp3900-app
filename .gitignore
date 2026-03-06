@@ -23,6 +23,9 @@ dist/
 target/
 dist/
 
+# Go build output
+bin/
+
 # JetBrains IDE
 .idea/
 
