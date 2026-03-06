@@ -44,7 +44,7 @@ func NewAppStack(scope constructs.Construct, id string, props *AppStackProps) aw
 			AuthenticationConfiguration: &awsapprunner.CfnService_AuthenticationConfigurationProperty{
 				AccessRoleArn: appRunnerEcrAccessRoleArn,
 			},
-			AutoDeploymentsEnabled: jsii.Bool(false),
+			AutoDeploymentsEnabled: jsii.Bool(AppRunnerAutoDeploy),
 			ImageRepository: &awsapprunner.CfnService_ImageRepositoryProperty{
 				ImageIdentifier:     imageIdentifier,
 				ImageRepositoryType: jsii.String("ECR"),
@@ -86,7 +86,7 @@ func NewAppStack(scope constructs.Construct, id string, props *AppStackProps) aw
 			},
 		},
 		DefaultRootObject:      jsii.String(""),
-		ErrorResponses:        nil,
+		ErrorResponses:         nil,
 		Comment:                jsii.String("CDN for App Runner app and static assets"),
 		PriceClass:             awscloudfront.PriceClass_PRICE_CLASS_100,
 		MinimumProtocolVersion: awscloudfront.SecurityPolicyProtocol_TLS_V1_2_2021,

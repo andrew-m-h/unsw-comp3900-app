@@ -10,8 +10,9 @@ const (
 
 // --- App Runner instance ---
 const (
-	AppRunnerCPU    = "1024"
-	AppRunnerMemory = "2048"
+	AppRunnerCPU        = "1024"
+	AppRunnerMemory     = "2048"
+	AppRunnerAutoDeploy = true
 )
 
 // --- GitHub OIDC (https://docs.github.com/en/actions/deployment/security-hardening-your-deployments/configuring-openid-connect-in-amazon-web-services) ---
