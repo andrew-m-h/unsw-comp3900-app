@@ -56,17 +56,42 @@ Example: set `githubOwner` and `githubRepo` in `cdk.json` to enable the GitHub A
 
 ## GitHub Actions push to ECR (OIDC)
 
-The stack can create an **IAM role** that GitHub Actions assumes via OIDC to push images to ECR—no long-lived access keys.
+### How GitHub connects to ECR (no long‑lived keys)
 
-1. Set **githubOwner** and **githubRepo** in `cdk.json` under `context` (see [Configuration](#configuration-cdkjson)). Optionally set **githubBranch** (e.g. `main`); leave it empty to allow any ref. Alternatively, you can still pass `GitHub: &GitHubOIDCConfig{...}` in code when creating the stack.
+The link is **OIDC**: the workflow asks GitHub for a short‑lived token, then uses it to assume the IAM role in AWS. Nothing in AWS “calls” GitHub; the **workflow runs in GitHub** and initiates the connection.
 
-2. Deploy the stack, then copy the **GitHubECRPushRoleArn** output.
+| Where | What’s configured |
+|-------|--------------------|
+| **AWS (our CDK)** | **Base stack** creates: (1) an IAM OIDC provider for `https://token.actions.githubusercontent.com`, (2) an IAM role whose **trust policy** allows that provider to assume it only when the token’s `sub` matches your repo (and optional branch), (3) ECR push permissions on that role. The role ARN is in the **GitHubECRPushRoleArn** stack output. |
+| **GitHub** | In the **repo**: (1) a **secret** (e.g. `AWS_ROLE_ARN`) set to that role ARN, (2) a **workflow** that requests an OIDC token (`id-token: write`) and calls `configure-aws-credentials` with `role-to-assume: ${{ secrets.AWS_ROLE_ARN }}`. The action exchanges the token for temporary AWS credentials and uses them for `docker push` to ECR. |
 
-3. In your GitHub Actions workflow, use the [configure-aws-credentials](https://github.com/aws-actions/configure-aws-credentials) action with OIDC:
+So: **AWS side** = OIDC provider + role + ECR policy (in `base_stack.go` / `infrastructure.go`). **GitHub side** = workflow + secret holding the role ARN; that’s where “GitHub connects to AWS” is configured.
+
+### Setup
+
+1. Set **githubOwner** and **githubRepo** in `cdk.json` (see [Configuration](#configuration-cdkjson)). Optionally **githubBranch** (e.g. `main`).
+2. Deploy the base stack, then copy the **GitHubECRPushRoleArn** output.
+3. In the GitHub repo: add a secret **AWS_ROLE_ARN** with that ARN.
+4. In the workflow, request OIDC and assume the role before pushing to ECR:
+
    ```yaml
-   - uses: aws-actions/configure-aws-credentials@v4
-     with:
-       role-to-assume: ${{ secrets.AWS_ROLE_ARN }}   # value of GitHubECRPushRoleArn
-       aws-region: ${{ env.AWS_REGION }}
+   permissions:
+     id-token: write   # required for OIDC
+   steps:
+     - uses: aws-actions/configure-aws-credentials@v4
+       with:
+         role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+         aws-region: ${{ env.AWS_REGION }}
+     # then: docker login to ECR, build, push
    ```
-   No `aws-access-key-id` or `aws-secret-access-key`—GitHub’s OIDC token is used to assume the role.
+   Do **not** set `aws-access-key-id` or `aws-secret-access-key`; the action uses the OIDC token to assume the role.
+
+### Using the repo workflow
+
+The repo includes **`.github/workflows/build-and-push-ecr.yml`**, which builds the Docker image and pushes it to ECR on push to `main` (and on manual run). Configure the repo:
+
+| Type    | Name                | Value / source |
+|---------|---------------------|----------------|
+| Secret  | `AWS_ROLE_ARN`      | BaseStack output **GitHubECRPushRoleArn** |
+| Variable| `ECR_REPOSITORY_URI`| BaseStack output **ECRRepositoryUri** (e.g. `123456789012.dkr.ecr.ap-southeast-2.amazonaws.com/unsw-comp3900-app`) |
+| Variable| `AWS_REGION`        | Optional; default in the workflow is `ap-southeast-2`. Set if you use another region. |

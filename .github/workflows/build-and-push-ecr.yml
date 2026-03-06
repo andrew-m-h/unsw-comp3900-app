@@ -1,0 +1,52 @@
+# Build the Docker image and push to AWS ECR.
+# Uses OIDC to assume the IAM role (no access keys). Requires repo secrets/variables below.
+
+name: Build and push to ECR
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Set ECR registry
+        id: ecr
+        run: |
+          URI="${{ vars.ECR_REPOSITORY_URI }}"
+          if [ -z "$URI" ]; then
+            echo "error: Set repository variable ECR_REPOSITORY_URI (from BaseStack output ECRRepositoryUri)"
+            exit 1
+          fi
+          echo "registry=${URI%/*}" >> "$GITHUB_OUTPUT"
+          echo "repository=$URI" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to Amazon ECR
+        run: |
+          aws ecr get-login-password --region ${{ env.AWS_REGION }} | \
+            docker login --username AWS --password-stdin ${{ steps.ecr.outputs.registry }}
+
+      - name: Build and push
+        run: |
+          IMAGE="${{ steps.ecr.outputs.repository }}"
+          docker build -t "$IMAGE:latest" -t "$IMAGE:${{ github.sha }}" .
+          docker push "$IMAGE:latest"
+          docker push "$IMAGE:${{ github.sha }}"
