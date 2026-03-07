@@ -28,4 +28,5 @@ const (
 	ExportAppRunnerEcrAccessRole = "UnswComp3900App-AppRunnerEcrAccessRoleArn"
 	ExportStaticAssetsBucketName = "UnswComp3900App-StaticAssetsBucketName"
 	ExportGitHubECRPushRoleArn   = "UnswComp3900App-GitHubECRPushRoleArn"
+	ExportGitHubCDKDeployRoleArn = "UnswComp3900App-GitHubCDKDeployRoleArn"
 )

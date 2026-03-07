@@ -60,11 +60,19 @@ func NewBaseStack(scope constructs.Construct, id string, props *BaseStackProps) 
 		githubConfig = &GitHubOIDCConfig{Owner: githubOwner, Repo: githubRepo, Branch: githubBranch}
 	}
 	if githubConfig != nil {
-		githubRole := newGitHubOIDCRoleForECR(stack, ecrRepo, githubConfig)
+		provider := newGitHubOIDCProvider(stack)
+		principal := githubOIDCPrincipal(provider, githubConfig)
+		githubRole := newGitHubOIDCRoleForECR(stack, ecrRepo, principal, githubConfig)
+		cdkDeployRole := newGitHubCDKDeployRole(stack, principal, githubConfig)
 		awscdk.NewCfnOutput(stack, jsii.String("GitHubECRPushRoleArn"), &awscdk.CfnOutputProps{
 			Value:       githubRole.RoleArn(),
-			Description: jsii.String("ARN of the IAM role for GitHub Actions OIDC; set as AWS_ROLE_ARN in the workflow (no access keys)."),
+			Description: jsii.String("ARN of the IAM role for GitHub Actions to push to ECR; set as AWS_ROLE_ARN in build-and-push workflow."),
 			ExportName:  jsii.String(ExportGitHubECRPushRoleArn),
+		})
+		awscdk.NewCfnOutput(stack, jsii.String("GitHubCDKDeployRoleArn"), &awscdk.CfnOutputProps{
+			Value:       cdkDeployRole.RoleArn(),
+			Description: jsii.String("ARN of the IAM role for GitHub Actions to deploy CDK; set as AWS_CDK_DEPLOY_ROLE_ARN secret."),
+			ExportName:  jsii.String(ExportGitHubCDKDeployRoleArn),
 		})
 	}
 

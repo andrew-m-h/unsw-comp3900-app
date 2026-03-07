@@ -34,15 +34,17 @@ func getContextString(scope constructs.Construct, key string, defaultVal string)
 	}
 }
 
-// newGitHubOIDCRoleForECR creates an IAM OIDC provider for GitHub and a role that GitHub Actions can assume to push to ECR (no long-lived credentials).
-// Uses the L1 AWS::IAM::OIDCProvider so no CDK bootstrap bucket is required.
-func newGitHubOIDCRoleForECR(stack awscdk.Stack, ecrRepo awsecr.IRepository, config *GitHubOIDCConfig) awsiam.IRole {
-	githubOIDC := awsiam.NewCfnOIDCProvider(stack, jsii.String("GitHubOIDC"), &awsiam.CfnOIDCProviderProps{
-		Url:           jsii.String(GitHubOIDCURL),
-		ClientIdList:  &[]*string{jsii.String(GitHubOIDCAudience)},
+// newGitHubOIDCProvider creates the L1 GitHub OIDC provider (shared by ECR push and CDK deploy roles).
+func newGitHubOIDCProvider(stack awscdk.Stack) awsiam.CfnOIDCProvider {
+	return awsiam.NewCfnOIDCProvider(stack, jsii.String("GitHubOIDC"), &awsiam.CfnOIDCProviderProps{
+		Url:            jsii.String(GitHubOIDCURL),
+		ClientIdList:   &[]*string{jsii.String(GitHubOIDCAudience)},
 		ThumbprintList: &[]*string{jsii.String(GitHubOIDCThumbprint)},
 	})
+}
 
+// githubOIDCPrincipal returns a principal that trusts the given GitHub OIDC provider for the given repo/branch.
+func githubOIDCPrincipal(provider awsiam.CfnOIDCProvider, config *GitHubOIDCConfig) awsiam.IPrincipal {
 	subClaim := "repo:" + config.Owner + "/" + config.Repo + ":*"
 	if config.Branch != "" {
 		subClaim = "repo:" + config.Owner + "/" + config.Repo + ":ref:refs/heads/" + config.Branch
@@ -55,8 +57,11 @@ func newGitHubOIDCRoleForECR(stack awscdk.Stack, ecrRepo awsecr.IRepository, con
 			"token.actions.githubusercontent.com:sub": subClaim,
 		},
 	}
+	return awsiam.NewOpenIdConnectPrincipal(provider, &conditions)
+}
 
-	principal := awsiam.NewOpenIdConnectPrincipal(githubOIDC, &conditions)
+// newGitHubOIDCRoleForECR creates a role that GitHub Actions can assume to push to ECR via OIDC.
+func newGitHubOIDCRoleForECR(stack awscdk.Stack, ecrRepo awsecr.IRepository, principal awsiam.IPrincipal, config *GitHubOIDCConfig) awsiam.IRole {
 	role := awsiam.NewRole(stack, jsii.String("GitHubECRPushRole"), &awsiam.RoleProps{
 		RoleName:    jsii.String("github-ecr-push-" + config.Repo),
 		AssumedBy:   principal,
@@ -64,6 +69,17 @@ func newGitHubOIDCRoleForECR(stack awscdk.Stack, ecrRepo awsecr.IRepository, con
 	})
 	ecrRepo.GrantPush(role)
 	return role
+}
+
+// newGitHubCDKDeployRole creates a role that GitHub Actions can assume to deploy CDK stacks (e.g. AdministratorAccess).
+func newGitHubCDKDeployRole(stack awscdk.Stack, principal awsiam.IPrincipal, config *GitHubOIDCConfig) awsiam.IRole {
+	adminPolicy := awsiam.ManagedPolicy_FromAwsManagedPolicyName(jsii.String("AdministratorAccess"))
+	return awsiam.NewRole(stack, jsii.String("GitHubCDKDeployRole"), &awsiam.RoleProps{
+		RoleName:         jsii.String("github-cdk-deploy-" + config.Repo),
+		AssumedBy:        principal,
+		Description:      jsii.String("Allows GitHub Actions to deploy CDK stacks via OIDC"),
+		ManagedPolicies: &[]awsiam.IManagedPolicy{adminPolicy},
+	})
 }
 
 func main() {
