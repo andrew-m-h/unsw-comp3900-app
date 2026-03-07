@@ -1,0 +1,175 @@
+# Main build and deploy: BaseStack → build & push ECR → upload frontend to S3 → AppStack.
+# Single workflow combining infrastructure deploy, ECR push, and frontend upload.
+# Uses OIDC: AWS_CDK_DEPLOY_ROLE_ARN for CDK/S3; AWS_ROLE_ARN for ECR push.
+
+name: Build and deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
+
+jobs:
+  deploy-base:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache-dependency-path: infrastructure/go.sum
+
+      - name: Configure AWS credentials (CDK deploy)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_CDK_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install CDK CLI
+        run: npm install -g aws-cdk
+
+      - name: Deploy BaseStack
+        working-directory: infrastructure
+        run: cdk deploy --asset-metadata false --path-metadata false --telemetry false --require-approval never UNSWComp3900BaseStack
+
+  build-push:
+    needs: deploy-base
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (ECR push)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Set ECR registry
+        id: ecr
+        run: |
+          URI="${{ vars.ECR_REPOSITORY_URI }}"
+          if [ -z "$URI" ]; then
+            echo "error: Set repository variable ECR_REPOSITORY_URI (from BaseStack output ECRRepositoryUri)"
+            exit 1
+          fi
+          echo "registry=${URI%/*}" >> "$GITHUB_OUTPUT"
+          echo "repository=$URI" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to Amazon ECR
+        run: |
+          aws ecr get-login-password --region ${{ env.AWS_REGION }} | \
+            docker login --username AWS --password-stdin ${{ steps.ecr.outputs.registry }}
+
+      - name: Build and push
+        run: |
+          IMAGE="${{ steps.ecr.outputs.repository }}"
+          docker build -t "$IMAGE:latest" -t "$IMAGE:${{ github.sha }}" .
+          docker push "$IMAGE:latest"
+          docker push "$IMAGE:${{ github.sha }}"
+
+  upload-frontend:
+    needs: build-push
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_CDK_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Get S3 bucket name
+        id: bucket
+        run: |
+          BUCKET=$(aws cloudformation describe-stacks \
+            --stack-name UNSWComp3900BaseStack \
+            --query "Stacks[0].Outputs[?OutputKey=='StaticAssetsBucketName'].OutputValue" \
+            --output text)
+          if [ -z "$BUCKET" ] || [ "$BUCKET" == "None" ]; then
+            echo "error: Could not get StaticAssetsBucketName from BaseStack"
+            exit 1
+          fi
+          echo "bucket=$BUCKET" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install and build frontend
+        run: |
+          cd frontend
+          npm ci
+          npm run build
+
+      - name: Upload frontend to S3
+        run: |
+          aws s3 sync frontend/dist/ s3://${{ steps.bucket.outputs.bucket }}/static/ \
+            --delete \
+            --cache-control "public, max-age=31536000, immutable" \
+            --exclude "index.html"
+          aws s3 cp frontend/dist/index.html s3://${{ steps.bucket.outputs.bucket }}/static/index.html \
+            --cache-control "public, max-age=0, must-revalidate"
+
+  deploy-app:
+    needs: build-push
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache-dependency-path: infrastructure/go.sum
+
+      - name: Configure AWS credentials (CDK deploy)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_CDK_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install CDK CLI
+        run: npm install -g aws-cdk
+
+      - name: Deploy AppStack
+        working-directory: infrastructure
+        run: cdk deploy --asset-metadata false --path-metadata false --telemetry false --require-approval never UNSWComp3900AppStack

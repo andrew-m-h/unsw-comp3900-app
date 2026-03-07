@@ -1,6 +1,8 @@
 .PHONY: build run tidy clean docker-build docker-push
+.PHONY: frontend-install frontend-build frontend-dev frontend-preview frontend-clean
 
 IMAGE ?= unsw-comp3900-app
+FRONTEND_DIR = frontend
 
 build:
 	go build -o bin/server .
@@ -19,3 +21,19 @@ docker-build:
 
 docker-push: docker-build
 	docker push $(IMAGE)
+
+# Frontend (Vue.js) — generates HTML/JS/CSS in frontend/dist
+frontend-install:
+	cd $(FRONTEND_DIR) && npm install
+
+frontend-build: frontend-install
+	cd $(FRONTEND_DIR) && npm run build
+
+frontend-dev:
+	cd $(FRONTEND_DIR) && npm run dev
+
+frontend-preview:
+	cd $(FRONTEND_DIR) && npm run preview
+
+frontend-clean:
+	rm -rf $(FRONTEND_DIR)/dist $(FRONTEND_DIR)/node_modules
