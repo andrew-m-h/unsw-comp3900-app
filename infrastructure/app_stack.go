@@ -5,6 +5,7 @@ import (
 	"github.com/aws/aws-cdk-go/awscdk/v2/awsapprunner"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awscloudfront"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awscloudfrontorigins"
+	"github.com/aws/aws-cdk-go/awscdk/v2/awsiam"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awss3"
 	"github.com/aws/constructs-go/constructs/v10"
 	"github.com/aws/jsii-runtime-go"
@@ -37,6 +38,16 @@ func NewAppStack(scope constructs.Construct, id string, props *AppStackProps) aw
 		jsii.String("latest"),
 	})
 
+	// Guestbook DynamoDB table
+	guestbookTable := NewGuestbookTable(stack, jsii.String("GuestbookTable"))
+
+	// IAM role for App Runner instance (runtime) — allows app to call DynamoDB
+	appRunnerInstanceRole := awsiam.NewRole(stack, jsii.String("AppRunnerInstanceRole"), &awsiam.RoleProps{
+		AssumedBy:   awsiam.NewServicePrincipal(jsii.String("tasks.apprunner.amazonaws.com"), nil),
+		Description: jsii.String("Allows App Runner service instance to access DynamoDB (e.g. guestbook table)"),
+	})
+	guestbookTable.GrantReadWriteData(appRunnerInstanceRole)
+
 	// App Runner service
 	appRunnerService := awsapprunner.NewCfnService(stack, jsii.String("AppRunnerService"), &awsapprunner.CfnServiceProps{
 		ServiceName: jsii.String(ecrRepositoryName),
@@ -50,12 +61,16 @@ func NewAppStack(scope constructs.Construct, id string, props *AppStackProps) aw
 				ImageRepositoryType: jsii.String("ECR"),
 				ImageConfiguration: &awsapprunner.CfnService_ImageConfigurationProperty{
 					Port: jsii.String(AppRunnerServicePort),
+					RuntimeEnvironmentVariables: &[]*awsapprunner.CfnService_KeyValuePairProperty{
+						{Name: jsii.String("GUESTBOOK_TABLE_NAME"), Value: guestbookTable.TableName()},
+					},
 				},
 			},
 		},
 		InstanceConfiguration: &awsapprunner.CfnService_InstanceConfigurationProperty{
-			Cpu:    jsii.String(AppRunnerCPU),
-			Memory: jsii.String(AppRunnerMemory),
+			Cpu:              jsii.String(AppRunnerCPU),
+			Memory:           jsii.String(AppRunnerMemory),
+			InstanceRoleArn:  appRunnerInstanceRole.RoleArn(),
 		},
 		HealthCheckConfiguration: &awsapprunner.CfnService_HealthCheckConfigurationProperty{
 			Path:     jsii.String(AppRunnerHealthCheckPath),
@@ -98,6 +113,10 @@ func NewAppStack(scope constructs.Construct, id string, props *AppStackProps) aw
 	})
 
 	// Outputs (no export needed unless other stacks depend on these)
+	awscdk.NewCfnOutput(stack, jsii.String("GuestbookTableName"), &awscdk.CfnOutputProps{
+		Value:       guestbookTable.TableName(),
+		Description: jsii.String("DynamoDB guestbook table name (set as GUESTBOOK_TABLE_NAME in App Runner)"),
+	})
 	awscdk.NewCfnOutput(stack, jsii.String("AppRunnerServiceUrl"), &awscdk.CfnOutputProps{
 		Value:       appRunnerService.AttrServiceUrl(),
 		Description: jsii.String("App Runner service URL (also available behind CloudFront)"),
