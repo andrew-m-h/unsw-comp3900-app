@@ -44,7 +44,7 @@ jobs:
 
       - name: Deploy BaseStack
         working-directory: infrastructure
-        run: cdk deploy --asset-metadata false --path-metadata false --telemetry false --require-approval never BaseStack
+        run: cdk deploy --asset-metadata false --path-metadata false --telemetry false --require-approval never UNSWComp3900BaseStack
 
   build-push:
     needs: deploy-base
@@ -87,4 +87,4 @@ jobs:
 
       - name: Deploy AppStack
         working-directory: infrastructure
-        run: cdk deploy --asset-metadata false --path-metadata false --telemetry false --require-approval never AppStack
+        run: cdk deploy --asset-metadata false --path-metadata false --telemetry false --require-approval never UNSWComp3900AppStack

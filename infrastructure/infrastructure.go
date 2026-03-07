@@ -75,9 +75,9 @@ func newGitHubOIDCRoleForECR(stack awscdk.Stack, ecrRepo awsecr.IRepository, pri
 func newGitHubCDKDeployRole(stack awscdk.Stack, principal awsiam.IPrincipal, config *GitHubOIDCConfig) awsiam.IRole {
 	adminPolicy := awsiam.ManagedPolicy_FromAwsManagedPolicyName(jsii.String("AdministratorAccess"))
 	return awsiam.NewRole(stack, jsii.String("GitHubCDKDeployRole"), &awsiam.RoleProps{
-		RoleName:         jsii.String("github-cdk-deploy-" + config.Repo),
-		AssumedBy:        principal,
-		Description:      jsii.String("Allows GitHub Actions to deploy CDK stacks via OIDC"),
+		RoleName:        jsii.String("github-cdk-deploy-" + config.Repo),
+		AssumedBy:       principal,
+		Description:     jsii.String("Allows GitHub Actions to deploy CDK stacks via OIDC"),
 		ManagedPolicies: &[]awsiam.IManagedPolicy{adminPolicy},
 	})
 }
@@ -87,11 +87,11 @@ func main() {
 
 	app := awscdk.NewApp(nil)
 
-	NewBaseStack(app, "BaseStack", &BaseStackProps{
+	NewBaseStack(app, "UNSWComp3900BaseStack", &BaseStackProps{
 		StackProps: awscdk.StackProps{Env: env()},
 	})
 
-	NewAppStack(app, "AppStack", &AppStackProps{
+	NewAppStack(app, "UNSWComp3900AppStack", &AppStackProps{
 		StackProps: awscdk.StackProps{Env: env()},
 	})
 
