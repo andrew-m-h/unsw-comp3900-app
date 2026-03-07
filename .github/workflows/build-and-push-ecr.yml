@@ -46,6 +46,6 @@ jobs:
       - name: Build and push
         run: |
           IMAGE="${{ steps.ecr.outputs.repository }}"
-          docker build -t "$IMAGE:latest" -t "$IMAGE:${{ github.sha }}" .
+          docker build -f Dockerfile -t "$IMAGE:latest" -t "$IMAGE:${{ github.sha }}" backend
           docker push "$IMAGE:latest"
           docker push "$IMAGE:${{ github.sha }}"

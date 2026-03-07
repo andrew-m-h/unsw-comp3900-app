@@ -3,21 +3,22 @@
 
 IMAGE ?= unsw-comp3900-app
 FRONTEND_DIR = frontend
+BACKEND_DIR = backend
 
 build:
-	go build -o bin/server .
+	cd $(BACKEND_DIR) && go build -o ../bin/server .
 
 run:
-	go run .
+	cd $(BACKEND_DIR) && go run .
 
 tidy:
-	go mod tidy
+	cd $(BACKEND_DIR) && go mod tidy
 
 clean:
 	rm -rf bin/
 
 docker-build:
-	docker build -t $(IMAGE) .
+	docker build -f Dockerfile -t $(IMAGE) $(BACKEND_DIR)
 
 docker-push: docker-build
 	docker push $(IMAGE)
