@@ -57,14 +57,19 @@ func NewAppStack(scope constructs.Construct, id string, props *AppStackProps) aw
 			Cpu:    jsii.String(AppRunnerCPU),
 			Memory: jsii.String(AppRunnerMemory),
 		},
+		HealthCheckConfiguration: &awsapprunner.CfnService_HealthCheckConfigurationProperty{
+			Path:     jsii.String(AppRunnerHealthCheckPath),
+			Protocol: jsii.String("HTTP"),
+			Timeout:  jsii.Number(10),
+			Interval: jsii.Number(10),
+		},
 	})
 
 	// S3 bucket reference (from base stack) for CloudFront origin
 	staticBucket := awss3.Bucket_FromBucketName(stack, jsii.String("StaticAssets"), staticAssetsBucketName)
 
 	// CloudFront: App Runner as default origin, S3 for /static/*
-	appRunnerDomain := awscdk.Fn_Select(jsii.Number(1), awscdk.Fn_Split(jsii.String("//"), appRunnerService.AttrServiceUrl(), jsii.Number(2)))
-	appRunnerOrigin := awscloudfrontorigins.NewHttpOrigin(appRunnerDomain, &awscloudfrontorigins.HttpOriginProps{
+	appRunnerOrigin := awscloudfrontorigins.NewHttpOrigin(appRunnerService.AttrServiceUrl(), &awscloudfrontorigins.HttpOriginProps{
 		ProtocolPolicy: awscloudfront.OriginProtocolPolicy_HTTPS_ONLY,
 		CustomHeaders:  &map[string]*string{},
 	})

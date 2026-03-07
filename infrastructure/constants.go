@@ -6,6 +6,7 @@ package main
 const (
 	DefaultECRRepositoryName = "unsw-comp3900-app"
 	AppRunnerServicePort     = "8080"
+	AppRunnerHealthCheckPath = "/health"
 )
 
 // --- App Runner instance ---
