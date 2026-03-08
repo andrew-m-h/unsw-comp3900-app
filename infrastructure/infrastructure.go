@@ -34,6 +34,20 @@ func getContextString(scope constructs.Construct, key string, defaultVal string)
 	}
 }
 
+// getContextBool reads a boolean from CDK context (e.g. cdk.json "context" section). Returns defaultVal if missing or not a bool.
+func getContextBool(scope constructs.Construct, key string, defaultVal bool) bool {
+	v := scope.Node().TryGetContext(jsii.String(key))
+	if v == nil {
+		return defaultVal
+	}
+	switch b := v.(type) {
+	case bool:
+		return b
+	default:
+		return defaultVal
+	}
+}
+
 // newGitHubOIDCProvider creates the L1 GitHub OIDC provider (shared by ECR push and CDK deploy roles).
 func newGitHubOIDCProvider(stack awscdk.Stack) awsiam.CfnOIDCProvider {
 	return awsiam.NewCfnOIDCProvider(stack, jsii.String("GitHubOIDC"), &awsiam.CfnOIDCProviderProps{

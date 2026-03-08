@@ -26,6 +26,7 @@ func NewAppStack(scope constructs.Construct, id string, props *AppStackProps) aw
 	stack := awscdk.NewStack(scope, &id, &sprops)
 
 	ecrRepositoryName := getContextString(scope, "ecrRepositoryName", DefaultECRRepositoryName)
+	disableCache := getContextBool(scope, "disableCloudFrontCache", false)
 
 	// Import values from base stack
 	ecrRepositoryUri := awscdk.Fn_ImportValue(jsii.String(ExportECRRepositoryUri))
@@ -90,33 +91,44 @@ func NewAppStack(scope constructs.Construct, id string, props *AppStackProps) aw
 	})
 	s3Origin := awscloudfrontorigins.S3BucketOrigin_WithOriginAccessControl(staticBucket, &awscloudfrontorigins.S3BucketOriginWithOACProps{})
 
+	defaultBehavior := awscloudfront.BehaviorOptions{
+		Origin:               s3Origin,
+		ViewerProtocolPolicy: awscloudfront.ViewerProtocolPolicy_REDIRECT_TO_HTTPS,
+		AllowedMethods:       awscloudfront.AllowedMethods_ALLOW_GET_HEAD_OPTIONS(),
+		CachedMethods:        awscloudfront.CachedMethods_CACHE_GET_HEAD_OPTIONS(),
+	}
+	healthBehavior := awscloudfront.BehaviorOptions{
+		Origin:               appRunnerOrigin,
+		ViewerProtocolPolicy: awscloudfront.ViewerProtocolPolicy_REDIRECT_TO_HTTPS,
+		AllowedMethods:       awscloudfront.AllowedMethods_ALLOW_GET_HEAD_OPTIONS(),
+		CachedMethods:        awscloudfront.CachedMethods_CACHE_GET_HEAD_OPTIONS(),
+	}
+	apiBehavior := awscloudfront.BehaviorOptions{
+		Origin:               appRunnerOrigin,
+		ViewerProtocolPolicy: awscloudfront.ViewerProtocolPolicy_REDIRECT_TO_HTTPS,
+		AllowedMethods:       awscloudfront.AllowedMethods_ALLOW_ALL(),
+		CachedMethods:        awscloudfront.CachedMethods_CACHE_GET_HEAD_OPTIONS(),
+	}
+	staticBehavior := awscloudfront.BehaviorOptions{
+		Origin:               s3Origin,
+		ViewerProtocolPolicy: awscloudfront.ViewerProtocolPolicy_REDIRECT_TO_HTTPS,
+		AllowedMethods:       awscloudfront.AllowedMethods_ALLOW_GET_HEAD_OPTIONS(),
+		CachedMethods:        awscloudfront.CachedMethods_CACHE_GET_HEAD_OPTIONS(),
+	}
+	if disableCache {
+		cachePolicy := awscloudfront.CachePolicy_CACHING_DISABLED()
+		defaultBehavior.CachePolicy = cachePolicy
+		healthBehavior.CachePolicy = cachePolicy
+		apiBehavior.CachePolicy = cachePolicy
+		staticBehavior.CachePolicy = cachePolicy
+	}
+
 	distribution := awscloudfront.NewDistribution(stack, jsii.String("Distribution"), &awscloudfront.DistributionProps{
-		DefaultBehavior: &awscloudfront.BehaviorOptions{
-			Origin:               s3Origin,
-			ViewerProtocolPolicy: awscloudfront.ViewerProtocolPolicy_REDIRECT_TO_HTTPS,
-			AllowedMethods:       awscloudfront.AllowedMethods_ALLOW_GET_HEAD_OPTIONS(),
-			CachedMethods:        awscloudfront.CachedMethods_CACHE_GET_HEAD_OPTIONS(),
-		},
+		DefaultBehavior: &defaultBehavior,
 		AdditionalBehaviors: &map[string]*awscloudfront.BehaviorOptions{
-			// API / backend routes → App Runner (path patterns must include leading slash to match request path)
-			"/health": {
-				Origin:               appRunnerOrigin,
-				ViewerProtocolPolicy: awscloudfront.ViewerProtocolPolicy_REDIRECT_TO_HTTPS,
-				AllowedMethods:       awscloudfront.AllowedMethods_ALLOW_GET_HEAD_OPTIONS(),
-				CachedMethods:        awscloudfront.CachedMethods_CACHE_GET_HEAD_OPTIONS(),
-			},
-			"/api/*": {
-				Origin:               appRunnerOrigin,
-				ViewerProtocolPolicy: awscloudfront.ViewerProtocolPolicy_REDIRECT_TO_HTTPS,
-				AllowedMethods:       awscloudfront.AllowedMethods_ALLOW_ALL(),
-				CachedMethods:        awscloudfront.CachedMethods_CACHE_GET_HEAD_OPTIONS(),
-			},
-			"/static/*": {
-				Origin:               s3Origin,
-				ViewerProtocolPolicy: awscloudfront.ViewerProtocolPolicy_REDIRECT_TO_HTTPS,
-				AllowedMethods:       awscloudfront.AllowedMethods_ALLOW_GET_HEAD_OPTIONS(),
-				CachedMethods:        awscloudfront.CachedMethods_CACHE_GET_HEAD_OPTIONS(),
-			},
+			"/health":   &healthBehavior,
+			"/api/*":    &apiBehavior,
+			"/static/*": &staticBehavior,
 		},
 		DefaultRootObject: jsii.String("static/index.html"),
 		// Error responses for SPA Apps - not helpful for debugging

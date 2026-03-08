@@ -13,6 +13,7 @@
     ]
   },
   "context": {
+    "disableCloudFrontCache": true,
     "ecrRepositoryName": "unsw-comp3900-app",
     "githubOwner": "andrew-m-h",
     "githubRepo": "unsw-comp3900-app",
