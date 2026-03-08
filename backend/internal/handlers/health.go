@@ -10,13 +10,17 @@ const (
 )
 
 type healthResponse struct {
-	Status string `json:"status"`
+	Status  string `json:"status"`
+	Version string `json:"version"`
 }
 
-func Health(w http.ResponseWriter, r *http.Request) {
-	response := healthResponse{
-		Status: healthStatusOK,
+func Health(version string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		response := healthResponse{
+			Status:  healthStatusOK,
+			Version: version,
+		}
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(response)
 	}
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(response)
 }

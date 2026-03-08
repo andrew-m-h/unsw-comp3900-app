@@ -38,3 +38,6 @@ frontend-preview:
 
 frontend-clean:
 	rm -rf $(FRONTEND_DIR)/dist $(FRONTEND_DIR)/node_modules
+
+version-bump:
+	cd $(BACKEND_DIR) && go tool goversion -version-file=version.go patch
