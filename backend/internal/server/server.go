@@ -37,12 +37,11 @@ func NewHandler(gbClient *guestbook.Client, log *slog.Logger, version string) ht
 			middleware.RequireContentTypeJSONForBody,
 		)
 
-		r.Get("/error", handlers.Error)
 		r.Get("/health", handlers.Health(version))
-		r.Get("/guestbook/{id}", handlers.GuestbookGet(gbClient))
 		r.Route("/guestbook", func(r chi.Router) {
 			r.Get("/", guestbookList)
 			r.Post("/", guestbookCreate)
+			r.Get("/{id}", handlers.GuestbookGet(gbClient))
 		})
 	})
 

@@ -1,6 +1,6 @@
 .PHONY: build run tidy clean docker-build docker-push
 .PHONY: frontend-install frontend-build frontend-dev frontend-preview frontend-clean
-.PHONY: local-up local-down local-resources-up local-resources-down localstack-init e2e integration
+.PHONY: local-up local-down local-resources-up local-resources-down localstack-init unittest e2e integration
 
 IMAGE ?= unsw-comp3900-app
 FRONTEND_DIR = frontend
@@ -68,6 +68,10 @@ local-resources-down:
 # Optional: create DynamoDB table in LocalStack manually (normally done by dynamodb-init in docker-compose)
 localstack-init:
 	@echo "Table is created automatically by the dynamodb-init service when you run: make local-up"
+
+# Unit tests: fast tests with no external deps (mocked DDB). -tags=test includes mock.go (excluded from production build).
+unittest:
+	cd $(BACKEND_DIR) && go test -tags=test ./... -count=1
 
 # E2E tests: run against the real backend (external HTTP client). Prerequisite: start stack first with make local-up, then make e2e.
 # Issues HTTP requests to E2E_BASE_URL (default http://localhost:3000). Set E2E_BASE_URL when running tests inside Docker.

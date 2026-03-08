@@ -13,10 +13,17 @@ const (
 	gsiPkValue       = "ENTRY"
 )
 
+// DDBAPI is the subset of DynamoDB used by the guestbook client (for testing and injection).
+type DDBAPI interface {
+	Query(ctx context.Context, params *dynamodb.QueryInput, optFns ...func(*dynamodb.Options)) (*dynamodb.QueryOutput, error)
+	GetItem(ctx context.Context, params *dynamodb.GetItemInput, optFns ...func(*dynamodb.Options)) (*dynamodb.GetItemOutput, error)
+	PutItem(ctx context.Context, params *dynamodb.PutItemInput, optFns ...func(*dynamodb.Options)) (*dynamodb.PutItemOutput, error)
+}
+
 // Client talks to the Guestbook DynamoDB table (env: GUESTBOOK_TABLE_NAME).
 type Client struct {
-	ddb    *dynamodb.Client
-	table  string
+	ddb   DDBAPI
+	table string
 }
 
 // NewClient builds a guestbook client using default AWS config (env: AWS_ENDPOINT_URL, etc.).
@@ -30,6 +37,11 @@ func NewClient(ctx context.Context) (*Client, error) {
 		ddb:   dynamodb.NewFromConfig(cfg),
 		table: table,
 	}, nil
+}
+
+// NewClientWithDDB builds a client with the given DDB implementation (for tests and other packages).
+func NewClientWithDDB(api DDBAPI, table string) *Client {
+	return &Client{ddb: api, table: table}
 }
 
 func tableName() string {
