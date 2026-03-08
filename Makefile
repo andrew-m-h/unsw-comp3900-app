@@ -1,6 +1,6 @@
 .PHONY: build run tidy clean docker-build docker-push
 .PHONY: frontend-install frontend-build frontend-dev frontend-preview frontend-clean
-.PHONY: local-up local-down local-resources-up local-resources-down localstack-init e2e
+.PHONY: local-up local-down local-resources-up local-resources-down localstack-init e2e integration
 
 IMAGE ?= unsw-comp3900-app
 FRONTEND_DIR = frontend
@@ -72,4 +72,11 @@ localstack-init:
 # E2E tests: run against the real backend (external HTTP client). Prerequisite: start stack first with make local-up, then make e2e.
 # Issues HTTP requests to E2E_BASE_URL (default http://localhost:3000). Set E2E_BASE_URL when running tests inside Docker.
 e2e:
-	cd $(BACKEND_DIR) && E2E_BASE_URL=http://localhost:3000 go test -tags=e2e ./e2e -v -count=1
+	cd $(BACKEND_DIR) && E2E_BASE_URL=http://localhost:3000 go test -tags=e2e ./tests/e2e -v -count=1
+
+# Integration tests: in-process server (internal/server.NewHandler) + real LocalStack/DynamoDB. No nginx/frontend.
+# Prerequisite: make local-resources-up (then run backend tests with LocalStack env).
+integration:
+	cd $(BACKEND_DIR) && AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test AWS_DEFAULT_REGION=us-east-1 \
+		AWS_ENDPOINT_URL=http://127.0.0.1:4566 GUESTBOOK_TABLE_NAME=Guestbook \
+		go test -tags=integration ./tests/integration -v -count=1

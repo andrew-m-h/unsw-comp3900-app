@@ -10,7 +10,7 @@ on:
     branches: [main]
 
 jobs:
-  e2e:
+  e2e-integration-tests:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -47,6 +47,9 @@ jobs:
           done
           echo "Stack did not become ready"
           exit 1
+
+      - name: Run integration tests
+        run: make integration
 
       - name: Run E2E tests
         run: make e2e

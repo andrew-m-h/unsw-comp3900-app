@@ -1,6 +1,6 @@
-//go:build e2e
+//go:build e2e || integration
 
-package e2e
+package testclient
 
 import (
 	"bytes"
@@ -15,7 +15,6 @@ const (
 	APIGuestbook = "/api/guestbook/"
 )
 
-// acceptJSONTransport is an http.RoundTripper that sets Accept: application/json on every request.
 type acceptJSONTransport struct {
 	base http.RoundTripper
 }
@@ -25,7 +24,8 @@ func (t *acceptJSONTransport) RoundTrip(req *http.Request) (*http.Response, erro
 	return t.base.RoundTrip(req)
 }
 
-// Client sends HTTP requests with standard JSON headers (via RoundTripper and method-specific headers).
+// Client sends HTTP requests with standard JSON headers (Accept, Content-Type where needed).
+// Used by both e2e and integration tests.
 type Client struct {
 	BaseURL string
 	*http.Client
@@ -42,7 +42,6 @@ func NewClient(baseURL string) *Client {
 }
 
 // GetJSON performs a GET request to baseURL+path, expects 200 OK, and decodes the response body into v.
-// Returns an error if the request fails, status is not 200, or JSON decoding fails.
 func (c *Client) GetJSON(path string, v any) error {
 	req, err := http.NewRequest(http.MethodGet, c.BaseURL+path, nil)
 	if err != nil {
@@ -59,7 +58,7 @@ func (c *Client) GetJSON(path string, v any) error {
 	return DecodeJSON(resp, v)
 }
 
-// PostJSON performs a POST request to baseURL+path with body as JSON. Content-Type is set here; Accept by the RoundTripper.
+// PostJSON performs a POST request to baseURL+path with body as JSON.
 func (c *Client) PostJSON(path string, body any) (*http.Response, error) {
 	enc, err := json.Marshal(body)
 	if err != nil {
@@ -73,8 +72,7 @@ func (c *Client) PostJSON(path string, body any) (*http.Response, error) {
 	return c.Do(req)
 }
 
-// PostJSONExpectCreated performs a POST request to baseURL+path, expects 201 Created, and decodes the response body into v.
-// Returns an error if the request fails, status is not 201, or JSON decoding fails.
+// PostJSONExpectCreated performs a POST request, expects 201 Created, and decodes the response body into v.
 func (c *Client) PostJSONExpectCreated(path string, body any, v any) error {
 	resp, err := c.PostJSON(path, body)
 	if err != nil {

@@ -7,6 +7,7 @@ import (
 
 	"bitbucket.org/atlassian/unsw-comp3900-app/internal/guestbook"
 	"bitbucket.org/atlassian/unsw-comp3900-app/internal/handlers"
+	"bitbucket.org/atlassian/unsw-comp3900-app/tests/testclient"
 	"github.com/stretchr/testify/require"
 )
 
@@ -14,8 +15,8 @@ func TestGuestbookCreate(t *testing.T) {
 	var entry guestbook.Entry
 	body := handlers.CreateGuestbookRequest{Name: "E2E User", Message: "Hello from e2e"}
 
-	client := NewClient(baseURL)
-	err := client.PostJSONExpectCreated(APIGuestbook, body, &entry)
+	client := testclient.NewClient(baseURL)
+	err := client.PostJSONExpectCreated(testclient.APIGuestbook, body, &entry)
 	require.NoError(t, err)
 	require.NotEmpty(t, entry.ID)
 	require.Equal(t, body.Name, entry.Name)

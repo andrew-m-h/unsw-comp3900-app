@@ -7,12 +7,13 @@ import (
 	"net/http"
 	"testing"
 
+	"bitbucket.org/atlassian/unsw-comp3900-app/tests/testclient"
 	"github.com/stretchr/testify/require"
 )
 
 func TestErrorCodes_MalformedJSON_Returns400(t *testing.T) {
-	client := NewClient(baseURL)
-	req, err := http.NewRequest(http.MethodPost, client.BaseURL+APIGuestbook, bytes.NewReader([]byte("{")))
+	client := testclient.NewClient(baseURL)
+	req, err := http.NewRequest(http.MethodPost, client.BaseURL+testclient.APIGuestbook, bytes.NewReader([]byte("{")))
 	require.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
@@ -24,7 +25,7 @@ func TestErrorCodes_MalformedJSON_Returns400(t *testing.T) {
 }
 
 func TestErrorCodes_NonExistentPath_Returns404(t *testing.T) {
-	client := NewClient(baseURL)
+	client := testclient.NewClient(baseURL)
 	req, err := http.NewRequest(http.MethodGet, client.BaseURL+"/api/non-existant", nil)
 	require.NoError(t, err)
 
@@ -35,8 +36,8 @@ func TestErrorCodes_NonExistentPath_Returns404(t *testing.T) {
 }
 
 func TestErrorCodes_GuestbookPut_Returns405(t *testing.T) {
-	client := NewClient(baseURL)
-	req, err := http.NewRequest(http.MethodPut, client.BaseURL+APIGuestbook, nil)
+	client := testclient.NewClient(baseURL)
+	req, err := http.NewRequest(http.MethodPut, client.BaseURL+testclient.APIGuestbook, nil)
 	require.NoError(t, err)
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Content-Type", "application/json") // pass RequireContentTypeJSONForBody so Chi returns 405
@@ -48,7 +49,7 @@ func TestErrorCodes_GuestbookPut_Returns405(t *testing.T) {
 }
 
 func TestErrorCodes_InvalidAccept_Returns406(t *testing.T) {
-	req, err := http.NewRequest(http.MethodGet, baseURL+APIHealth, nil)
+	req, err := http.NewRequest(http.MethodGet, baseURL+testclient.APIHealth, nil)
 	require.NoError(t, err)
 	req.Header.Set("Accept", "text/html")
 
@@ -62,7 +63,7 @@ func TestErrorCodes_InvalidAccept_Returns406(t *testing.T) {
 // If you get 201 instead of 415, rebuild the backend: docker compose up -d --build backend
 func TestErrorCodes_InvalidContentType_PostGuestbook_Returns415(t *testing.T) {
 	body := []byte(`{"name":"E2E","message":"test"}`)
-	req, err := http.NewRequest(http.MethodPost, baseURL+APIGuestbook, bytes.NewReader(body))
+	req, err := http.NewRequest(http.MethodPost, baseURL+testclient.APIGuestbook, bytes.NewReader(body))
 	require.NoError(t, err)
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Content-Type", "text/plain")
