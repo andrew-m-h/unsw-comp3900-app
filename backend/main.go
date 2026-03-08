@@ -27,7 +27,7 @@ func main() {
 			middleware.ContentTypeJSON,
 			middleware.RequireAcceptJSON,
 		)
-		r.Get("/health", handlers.Health)
+		r.Get("/health", handlers.Health(Version))
 	})
 
 	// expose other routes under the /api prefix
@@ -38,7 +38,7 @@ func main() {
 			middleware.RequireAcceptJSON,
 		)
 		r.Get("/error", handlers.Error)
-		r.Get("/version", handlers.Version(Version))
+		r.Get("/health", handlers.Health(Version))
 	})
 
 	http.ListenAndServe(":8080", r)
