@@ -5,16 +5,16 @@ import (
 	"net/http"
 )
 
-var AppVersion = "1.0.0"
-
 type versionResponse struct {
 	Version string `json:"version"`
 }
 
-func Version(w http.ResponseWriter, r *http.Request) {
-	response := versionResponse{
-		Version: AppVersion,
+func Version(version string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		response := versionResponse{
+			Version: version,
+		}
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(response)
 	}
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(response)
 }

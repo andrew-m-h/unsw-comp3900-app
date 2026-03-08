@@ -68,9 +68,9 @@ func NewAppStack(scope constructs.Construct, id string, props *AppStackProps) aw
 			},
 		},
 		InstanceConfiguration: &awsapprunner.CfnService_InstanceConfigurationProperty{
-			Cpu:              jsii.String(AppRunnerCPU),
-			Memory:           jsii.String(AppRunnerMemory),
-			InstanceRoleArn:  appRunnerInstanceRole.RoleArn(),
+			Cpu:             jsii.String(AppRunnerCPU),
+			Memory:          jsii.String(AppRunnerMemory),
+			InstanceRoleArn: appRunnerInstanceRole.RoleArn(),
 		},
 		HealthCheckConfiguration: &awsapprunner.CfnService_HealthCheckConfigurationProperty{
 			Path:     jsii.String(AppRunnerHealthCheckPath),
@@ -99,13 +99,7 @@ func NewAppStack(scope constructs.Construct, id string, props *AppStackProps) aw
 		},
 		AdditionalBehaviors: &map[string]*awscloudfront.BehaviorOptions{
 			// API / backend routes → App Runner
-			"/health": &awscloudfront.BehaviorOptions{
-				Origin:               appRunnerOrigin,
-				ViewerProtocolPolicy: awscloudfront.ViewerProtocolPolicy_REDIRECT_TO_HTTPS,
-				AllowedMethods:       awscloudfront.AllowedMethods_ALLOW_GET_HEAD_OPTIONS(),
-				CachedMethods:        awscloudfront.CachedMethods_CACHE_GET_HEAD_OPTIONS(),
-			},
-			"/error": &awscloudfront.BehaviorOptions{
+			"health/": &awscloudfront.BehaviorOptions{
 				Origin:               appRunnerOrigin,
 				ViewerProtocolPolicy: awscloudfront.ViewerProtocolPolicy_REDIRECT_TO_HTTPS,
 				AllowedMethods:       awscloudfront.AllowedMethods_ALLOW_GET_HEAD_OPTIONS(),
@@ -114,7 +108,7 @@ func NewAppStack(scope constructs.Construct, id string, props *AppStackProps) aw
 			"api/*": &awscloudfront.BehaviorOptions{
 				Origin:               appRunnerOrigin,
 				ViewerProtocolPolicy: awscloudfront.ViewerProtocolPolicy_REDIRECT_TO_HTTPS,
-				AllowedMethods:       awscloudfront.AllowedMethods_ALLOW_GET_HEAD_PUT_POST_PATCH_DELETE_OPTIONS(),
+				AllowedMethods:       awscloudfront.AllowedMethods_ALLOW_ALL(),
 				CachedMethods:        awscloudfront.CachedMethods_CACHE_GET_HEAD_OPTIONS(),
 			},
 			"static/*": &awscloudfront.BehaviorOptions{
@@ -127,16 +121,16 @@ func NewAppStack(scope constructs.Construct, id string, props *AppStackProps) aw
 		DefaultRootObject: jsii.String("static/index.html"),
 		ErrorResponses: &[]*awscloudfront.ErrorResponse{
 			{
-				HttpStatus:       jsii.Number(403),
+				HttpStatus:         jsii.Number(403),
 				ResponseHttpStatus: jsii.Number(200),
-				ResponsePagePath: jsii.String("/static/index.html"),
-				Ttl:              awscdk.Duration_Seconds(jsii.Number(0)),
+				ResponsePagePath:   jsii.String("/static/index.html"),
+				Ttl:                awscdk.Duration_Seconds(jsii.Number(0)),
 			},
 			{
-				HttpStatus:       jsii.Number(404),
+				HttpStatus:         jsii.Number(404),
 				ResponseHttpStatus: jsii.Number(200),
-				ResponsePagePath: jsii.String("/static/index.html"),
-				Ttl:              awscdk.Duration_Seconds(jsii.Number(0)),
+				ResponsePagePath:   jsii.String("/static/index.html"),
+				Ttl:                awscdk.Duration_Seconds(jsii.Number(0)),
 			},
 		},
 		Comment:                jsii.String("CDN for App Runner app and static assets"),

@@ -20,15 +20,25 @@ func main() {
 		errors.HandleHTTPError,
 	)
 
+	// expose a /health check endpoint
 	r.Group(func(r chi.Router) {
-		// common middleware for all JSON Response routes
+		// common middleware for all routes
 		r.Use(
 			middleware.ContentTypeJSON,
 			middleware.RequireAcceptJSON,
 		)
 		r.Get("/health", handlers.Health)
+	})
+
+	// expose other routes under the /api prefix
+	r.Route("/api", func(r chi.Router) {
+		// common middleware for all JSON API routes
+		r.Use(
+			middleware.ContentTypeJSON,
+			middleware.RequireAcceptJSON,
+		)
 		r.Get("/error", handlers.Error)
-		r.Get("/version", handlers.Version)
+		r.Get("/version", handlers.Version(Version))
 	})
 
 	http.ListenAndServe(":8080", r)
