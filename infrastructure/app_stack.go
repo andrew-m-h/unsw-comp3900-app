@@ -99,19 +99,19 @@ func NewAppStack(scope constructs.Construct, id string, props *AppStackProps) aw
 		},
 		AdditionalBehaviors: &map[string]*awscloudfront.BehaviorOptions{
 			// API / backend routes → App Runner (path patterns must include leading slash to match request path)
-			"/health": &awscloudfront.BehaviorOptions{
+			"/health": {
 				Origin:               appRunnerOrigin,
 				ViewerProtocolPolicy: awscloudfront.ViewerProtocolPolicy_REDIRECT_TO_HTTPS,
 				AllowedMethods:       awscloudfront.AllowedMethods_ALLOW_GET_HEAD_OPTIONS(),
 				CachedMethods:        awscloudfront.CachedMethods_CACHE_GET_HEAD_OPTIONS(),
 			},
-			"/api/*": &awscloudfront.BehaviorOptions{
+			"/api/*": {
 				Origin:               appRunnerOrigin,
 				ViewerProtocolPolicy: awscloudfront.ViewerProtocolPolicy_REDIRECT_TO_HTTPS,
 				AllowedMethods:       awscloudfront.AllowedMethods_ALLOW_ALL(),
 				CachedMethods:        awscloudfront.CachedMethods_CACHE_GET_HEAD_OPTIONS(),
 			},
-			"/static/*": &awscloudfront.BehaviorOptions{
+			"/static/*": {
 				Origin:               s3Origin,
 				ViewerProtocolPolicy: awscloudfront.ViewerProtocolPolicy_REDIRECT_TO_HTTPS,
 				AllowedMethods:       awscloudfront.AllowedMethods_ALLOW_GET_HEAD_OPTIONS(),
@@ -119,20 +119,23 @@ func NewAppStack(scope constructs.Construct, id string, props *AppStackProps) aw
 			},
 		},
 		DefaultRootObject: jsii.String("static/index.html"),
-		ErrorResponses: &[]*awscloudfront.ErrorResponse{
-			{
-				HttpStatus:         jsii.Number(403),
-				ResponseHttpStatus: jsii.Number(200),
-				ResponsePagePath:   jsii.String("/static/index.html"),
-				Ttl:                awscdk.Duration_Seconds(jsii.Number(0)),
+		// Error responses for SPA Apps - not helpful for debugging
+		/*
+			ErrorResponses: &[]*awscloudfront.ErrorResponse{
+				{
+					HttpStatus:         jsii.Number(403),
+					ResponseHttpStatus: jsii.Number(200),
+					ResponsePagePath:   jsii.String("/static/index.html"),
+					Ttl:                awscdk.Duration_Seconds(jsii.Number(0)),
+				},
+				{
+					HttpStatus:         jsii.Number(404),
+					ResponseHttpStatus: jsii.Number(200),
+					ResponsePagePath:   jsii.String("/static/index.html"),
+					Ttl:                awscdk.Duration_Seconds(jsii.Number(0)),
+				},
 			},
-			{
-				HttpStatus:         jsii.Number(404),
-				ResponseHttpStatus: jsii.Number(200),
-				ResponsePagePath:   jsii.String("/static/index.html"),
-				Ttl:                awscdk.Duration_Seconds(jsii.Number(0)),
-			},
-		},
+		*/
 		Comment:                jsii.String("CDN for App Runner app and static assets"),
 		PriceClass:             awscloudfront.PriceClass_PRICE_CLASS_100,
 		MinimumProtocolVersion: awscloudfront.SecurityPolicyProtocol_TLS_V1_2_2021,
