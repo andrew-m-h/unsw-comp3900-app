@@ -61,5 +61,3 @@ jobs:
           docker build -f Dockerfile --build-arg VERSION="$VERSION" -t "$IMAGE:$VERSION" -t "$IMAGE:latest" backend
           docker push "$IMAGE:$VERSION"
           docker push "$IMAGE:latest"
-          docker tag "$IMAGE:latest" "$IMAGE:${{ github.sha }}"
-          docker push "$IMAGE:${{ github.sha }}"
