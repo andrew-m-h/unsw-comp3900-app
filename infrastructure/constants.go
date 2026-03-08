@@ -13,7 +13,7 @@ const (
 const (
 	AppRunnerCPU        = "1024"
 	AppRunnerMemory     = "2048"
-	AppRunnerAutoDeploy = true
+	AppRunnerAutoDeploy = false // manual: we trigger deployment via pipeline (start-deployment); no auto-deploy on ECR push
 )
 
 // --- GitHub OIDC (https://docs.github.com/en/actions/deployment/security-hardening-your-deployments/configuring-openid-connect-in-amazon-web-services) ---

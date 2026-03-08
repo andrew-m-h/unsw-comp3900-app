@@ -146,6 +146,10 @@ func NewAppStack(scope constructs.Construct, id string, props *AppStackProps) aw
 		Value:       guestbookTable.TableName(),
 		Description: jsii.String("DynamoDB guestbook table name (set as GUESTBOOK_TABLE_NAME in App Runner)"),
 	})
+	awscdk.NewCfnOutput(stack, jsii.String("AppRunnerServiceArn"), &awscdk.CfnOutputProps{
+		Value:       appRunnerService.AttrServiceArn(),
+		Description: jsii.String("App Runner service ARN (for start-deployment after CDK deploy)"),
+	})
 	awscdk.NewCfnOutput(stack, jsii.String("AppRunnerServiceUrl"), &awscdk.CfnOutputProps{
 		Value:       appRunnerService.AttrServiceUrl(),
 		Description: jsii.String("App Runner service URL (also available behind CloudFront)"),

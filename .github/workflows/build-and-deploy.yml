@@ -65,7 +65,7 @@ jobs:
         run: |
           VERSION=$(git tag -l 'v*.*.*' --sort=-v:refname | head -1)
           if [ -z "$VERSION" ]; then
-            VERSION="${{ github.sha }}"
+            VERSION="latest"
           fi
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
@@ -98,8 +98,6 @@ jobs:
           docker build -f Dockerfile --build-arg VERSION="$VERSION" -t "$IMAGE:$VERSION" -t "$IMAGE:latest" backend
           docker push "$IMAGE:$VERSION"
           docker push "$IMAGE:latest"
-          docker tag "$IMAGE:latest" "$IMAGE:${{ github.sha }}"
-          docker push "$IMAGE:${{ github.sha }}"
 
   upload-frontend:
     needs: build-push
@@ -187,3 +185,16 @@ jobs:
       - name: Deploy AppStack
         working-directory: infrastructure
         run: cdk deploy --asset-metadata false --path-metadata false --telemetry false --require-approval never UNSWComp3900AppStack
+
+      - name: Start App Runner deployment
+        run: |
+          ARN=$(aws cloudformation describe-stacks \
+            --stack-name UNSWComp3900AppStack \
+            --query "Stacks[0].Outputs[?OutputKey=='AppRunnerServiceArn'].OutputValue" \
+            --output text)
+          if [ -z "$ARN" ] || [ "$ARN" == "None" ]; then
+            echo "Could not get AppRunnerServiceArn; skipping start-deployment"
+            exit 0
+          fi
+          aws apprunner start-deployment --service-arn "$ARN"
+          echo "App Runner deployment started."
