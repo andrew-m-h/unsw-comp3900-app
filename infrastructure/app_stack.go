@@ -98,20 +98,20 @@ func NewAppStack(scope constructs.Construct, id string, props *AppStackProps) aw
 			CachedMethods:        awscloudfront.CachedMethods_CACHE_GET_HEAD_OPTIONS(),
 		},
 		AdditionalBehaviors: &map[string]*awscloudfront.BehaviorOptions{
-			// API / backend routes → App Runner
-			"health/": &awscloudfront.BehaviorOptions{
+			// API / backend routes → App Runner (path patterns must include leading slash to match request path)
+			"/health": &awscloudfront.BehaviorOptions{
 				Origin:               appRunnerOrigin,
 				ViewerProtocolPolicy: awscloudfront.ViewerProtocolPolicy_REDIRECT_TO_HTTPS,
 				AllowedMethods:       awscloudfront.AllowedMethods_ALLOW_GET_HEAD_OPTIONS(),
 				CachedMethods:        awscloudfront.CachedMethods_CACHE_GET_HEAD_OPTIONS(),
 			},
-			"api/*": &awscloudfront.BehaviorOptions{
+			"/api/*": &awscloudfront.BehaviorOptions{
 				Origin:               appRunnerOrigin,
 				ViewerProtocolPolicy: awscloudfront.ViewerProtocolPolicy_REDIRECT_TO_HTTPS,
 				AllowedMethods:       awscloudfront.AllowedMethods_ALLOW_ALL(),
 				CachedMethods:        awscloudfront.CachedMethods_CACHE_GET_HEAD_OPTIONS(),
 			},
-			"static/*": &awscloudfront.BehaviorOptions{
+			"/static/*": &awscloudfront.BehaviorOptions{
 				Origin:               s3Origin,
 				ViewerProtocolPolicy: awscloudfront.ViewerProtocolPolicy_REDIRECT_TO_HTTPS,
 				AllowedMethods:       awscloudfront.AllowedMethods_ALLOW_GET_HEAD_OPTIONS(),
