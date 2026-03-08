@@ -1,6 +1,6 @@
 .PHONY: build run tidy clean docker-build docker-push
 .PHONY: frontend-install frontend-build frontend-dev frontend-preview frontend-clean
-.PHONY: local-up local-down local-resources-up local-resources-down localstack-init
+.PHONY: local-up local-down local-resources-up local-resources-down localstack-init e2e
 
 IMAGE ?= unsw-comp3900-app
 FRONTEND_DIR = frontend
@@ -46,6 +46,10 @@ frontend-clean:
 version-bump:
 	cd $(BACKEND_DIR) && go tool goversion -version-file=version.go patch
 
+version-minor:
+	cd $(BACKEND_DIR) && go tool goversion -version-file=version.go minor
+
+
 # Local integration tests: LocalStack + backend + frontend (docker-compose)
 # Build frontend first so nginx can serve it: make frontend-build && make local-up
 local-up:
@@ -64,3 +68,8 @@ local-resources-down:
 # Optional: create DynamoDB table in LocalStack manually (normally done by dynamodb-init in docker-compose)
 localstack-init:
 	@echo "Table is created automatically by the dynamodb-init service when you run: make local-up"
+
+# E2E tests: run against the real backend (external HTTP client). Prerequisite: start stack first with make local-up, then make e2e.
+# Issues HTTP requests to E2E_BASE_URL (default http://localhost:3000). Set E2E_BASE_URL when running tests inside Docker.
+e2e:
+	cd $(BACKEND_DIR) && E2E_BASE_URL=http://localhost:3000 go test -tags=e2e ./e2e -v -count=1

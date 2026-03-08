@@ -1,11 +1,13 @@
 # Main build and deploy: BaseStack → build & push ECR → upload frontend to S3 → AppStack.
-# Single workflow combining infrastructure deploy, ECR push, and frontend upload.
+# Runs only after "Pre-build checks" succeeds on main (or via workflow_dispatch for manual deploy).
 # Uses OIDC: AWS_CDK_DEPLOY_ROLE_ARN for CDK/S3; AWS_ROLE_ARN for ECR push.
 
 name: Build and deploy
 
 on:
-  push:
+  workflow_run:
+    workflows: ["Pre-build checks"]
+    types: [completed]
     branches: [main]
   workflow_dispatch:
 
@@ -14,6 +16,8 @@ env:
 
 jobs:
   deploy-base:
+    # Only run when triggered by a successful pre-build-checks run, or by manual dispatch
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -22,6 +26,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -58,6 +64,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
           fetch-depth: 0
 
       - name: Get latest version tag
@@ -109,6 +116,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -161,6 +170,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
 
       - name: Setup Node
         uses: actions/setup-node@v4

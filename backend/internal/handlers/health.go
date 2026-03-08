@@ -6,18 +6,18 @@ import (
 )
 
 const (
-	healthStatusOK = "ok"
+	HealthStatusOK = "ok"
 )
 
-type healthResponse struct {
+type HealthResponse struct {
 	Status  string `json:"status"`
 	Version string `json:"version"`
 }
 
 func Health(version string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		response := healthResponse{
-			Status:  healthStatusOK,
+		response := HealthResponse{
+			Status:  HealthStatusOK,
 			Version: version,
 		}
 		w.WriteHeader(http.StatusOK)

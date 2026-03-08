@@ -7,9 +7,10 @@ import (
 
 	httpErrors "bitbucket.org/atlassian/unsw-comp3900-app/internal/errors"
 	"bitbucket.org/atlassian/unsw-comp3900-app/internal/guestbook"
+	"github.com/go-chi/chi/v5"
 )
 
-type createGuestbookRequest struct {
+type CreateGuestbookRequest struct {
 	Name    string `json:"name"`
 	Message string `json:"message"`
 }
@@ -17,7 +18,7 @@ type createGuestbookRequest struct {
 // Guestbook returns handlers for the /api/guestbook routes (create and list).
 func Guestbook(client *guestbook.Client) (create, list http.HandlerFunc) {
 	create = func(w http.ResponseWriter, r *http.Request) {
-		var req createGuestbookRequest
+		var req CreateGuestbookRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			httpErrors.SetHTTPError(r.Context(), httpErrors.HTTPError(http.StatusBadRequest, err))
 			return
@@ -49,4 +50,26 @@ func Guestbook(client *guestbook.Client) (create, list http.HandlerFunc) {
 	}
 
 	return create, list
+}
+
+// GuestbookGet returns a single guestbook entry by id. GET /api/guestbook/{id} → 200 with entry or 404.
+func GuestbookGet(client *guestbook.Client) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id := chi.URLParam(r, "id")
+		if id == "" {
+			httpErrors.SetHTTPError(r.Context(), httpErrors.HTTPError(http.StatusBadRequest, errors.New("id is required")))
+			return
+		}
+		entry, err := client.GetEntry(r.Context(), id)
+		if err != nil {
+			if errors.Is(err, guestbook.ErrNotFound) {
+				httpErrors.SetHTTPError(r.Context(), httpErrors.HTTPError(http.StatusNotFound, err))
+				return
+			}
+			httpErrors.SetHTTPError(r.Context(), httpErrors.HTTPError(http.StatusInternalServerError, err))
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(entry)
+	}
 }

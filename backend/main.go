@@ -25,14 +25,19 @@ func main() {
 
 	r := chi.NewRouter()
 	r.Use(
+		// request logging
+		// add logger to context
 		middleware.Logger(log),
+		// handle HTTP errors raised during request processing
 		errors.HandleHTTPError,
 	)
 
 	// expose a /health check endpoint
 	r.Group(func(r chi.Router) {
 		r.Use(
-			middleware.ContentTypeJSON,
+			// respond with Content-Type: application/json
+			middleware.ResponseContentTypeJSON,
+			// require Accept: application/json
 			middleware.RequireAcceptJSON,
 		)
 		r.Get("/health", handlers.Health(Version))
@@ -41,11 +46,17 @@ func main() {
 	// API routes under /api
 	r.Route("/api", func(r chi.Router) {
 		r.Use(
-			middleware.ContentTypeJSON,
+			// respond with Content-Type: application/json
+			middleware.ResponseContentTypeJSON,
+			// require Accept: application/json
 			middleware.RequireAcceptJSON,
+			// require Content-Type: application/json for POST, PUT, PATCH requests
+			middleware.RequireContentTypeJSONForBody,
 		)
+
 		r.Get("/error", handlers.Error)
 		r.Get("/health", handlers.Health(Version))
+		r.Get("/guestbook/{id}", handlers.GuestbookGet(gbClient)) // before /guestbook so GET /api/guestbook/{id} matches
 		r.Route("/guestbook", func(r chi.Router) {
 			r.Get("/", guestbookList)
 			r.Post("/", guestbookCreate)
