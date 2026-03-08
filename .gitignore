@@ -43,6 +43,9 @@ Thumbs.db
 *.exe
 *.war
 
+# LocalStack volume (docker-compose)
+.localstack/
+
 # Large media files
 *.mp4
 *.tiff

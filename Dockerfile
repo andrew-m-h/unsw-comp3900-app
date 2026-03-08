@@ -12,7 +12,7 @@ RUN CGO_ENABLED=0 go build -o /server .
 # Run stage
 FROM alpine:3.21
 
-RUN apk --no-cache add ca-certificates
+RUN apk --no-cache add ca-certificates curl
 WORKDIR /
 
 COPY --from=builder /server /server

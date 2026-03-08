@@ -25,6 +25,11 @@ func newError(code int, err error) *httpErrorT {
 	return &httpErrorT{Code: code, Err: err}
 }
 
+// HTTPError returns an HTTP error for the middleware to send (e.g. 400 Bad Request, 500 Internal Server Error).
+func HTTPError(code int, err error) *httpErrorT {
+	return newError(code, err)
+}
+
 const (
 	myCustomErrorCode    = 505
 	myCustomErrorMessage = "my custom error"
