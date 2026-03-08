@@ -83,7 +83,7 @@ func NewAppStack(scope constructs.Construct, id string, props *AppStackProps) aw
 	// S3 bucket reference (from base stack) for CloudFront origin
 	staticBucket := awss3.Bucket_FromBucketName(stack, jsii.String("StaticAssets"), staticAssetsBucketName)
 
-	// CloudFront: App Runner as default origin, S3 for /static/*
+	// CloudFront: default to S3 (static/index.html for "/" and SPA fallback); API paths to App Runner
 	appRunnerOrigin := awscloudfrontorigins.NewHttpOrigin(appRunnerService.AttrServiceUrl(), &awscloudfrontorigins.HttpOriginProps{
 		ProtocolPolicy: awscloudfront.OriginProtocolPolicy_HTTPS_ONLY,
 		CustomHeaders:  &map[string]*string{},
@@ -92,12 +92,31 @@ func NewAppStack(scope constructs.Construct, id string, props *AppStackProps) aw
 
 	distribution := awscloudfront.NewDistribution(stack, jsii.String("Distribution"), &awscloudfront.DistributionProps{
 		DefaultBehavior: &awscloudfront.BehaviorOptions{
-			Origin:               appRunnerOrigin,
+			Origin:               s3Origin,
 			ViewerProtocolPolicy: awscloudfront.ViewerProtocolPolicy_REDIRECT_TO_HTTPS,
 			AllowedMethods:       awscloudfront.AllowedMethods_ALLOW_GET_HEAD_OPTIONS(),
 			CachedMethods:        awscloudfront.CachedMethods_CACHE_GET_HEAD_OPTIONS(),
 		},
 		AdditionalBehaviors: &map[string]*awscloudfront.BehaviorOptions{
+			// API / backend routes → App Runner
+			"/health": &awscloudfront.BehaviorOptions{
+				Origin:               appRunnerOrigin,
+				ViewerProtocolPolicy: awscloudfront.ViewerProtocolPolicy_REDIRECT_TO_HTTPS,
+				AllowedMethods:       awscloudfront.AllowedMethods_ALLOW_GET_HEAD_OPTIONS(),
+				CachedMethods:        awscloudfront.CachedMethods_CACHE_GET_HEAD_OPTIONS(),
+			},
+			"/error": &awscloudfront.BehaviorOptions{
+				Origin:               appRunnerOrigin,
+				ViewerProtocolPolicy: awscloudfront.ViewerProtocolPolicy_REDIRECT_TO_HTTPS,
+				AllowedMethods:       awscloudfront.AllowedMethods_ALLOW_GET_HEAD_OPTIONS(),
+				CachedMethods:        awscloudfront.CachedMethods_CACHE_GET_HEAD_OPTIONS(),
+			},
+			"api/*": &awscloudfront.BehaviorOptions{
+				Origin:               appRunnerOrigin,
+				ViewerProtocolPolicy: awscloudfront.ViewerProtocolPolicy_REDIRECT_TO_HTTPS,
+				AllowedMethods:       awscloudfront.AllowedMethods_ALLOW_GET_HEAD_PUT_POST_PATCH_DELETE_OPTIONS(),
+				CachedMethods:        awscloudfront.CachedMethods_CACHE_GET_HEAD_OPTIONS(),
+			},
 			"static/*": &awscloudfront.BehaviorOptions{
 				Origin:               s3Origin,
 				ViewerProtocolPolicy: awscloudfront.ViewerProtocolPolicy_REDIRECT_TO_HTTPS,
@@ -105,8 +124,21 @@ func NewAppStack(scope constructs.Construct, id string, props *AppStackProps) aw
 				CachedMethods:        awscloudfront.CachedMethods_CACHE_GET_HEAD_OPTIONS(),
 			},
 		},
-		DefaultRootObject:      jsii.String(""),
-		ErrorResponses:         nil,
+		DefaultRootObject: jsii.String("static/index.html"),
+		ErrorResponses: &[]*awscloudfront.ErrorResponse{
+			{
+				HttpStatus:       jsii.Number(403),
+				ResponseHttpStatus: jsii.Number(200),
+				ResponsePagePath: jsii.String("/static/index.html"),
+				Ttl:              awscdk.Duration_Seconds(jsii.Number(0)),
+			},
+			{
+				HttpStatus:       jsii.Number(404),
+				ResponseHttpStatus: jsii.Number(200),
+				ResponsePagePath: jsii.String("/static/index.html"),
+				Ttl:              awscdk.Duration_Seconds(jsii.Number(0)),
+			},
+		},
 		Comment:                jsii.String("CDN for App Runner app and static assets"),
 		PriceClass:             awscloudfront.PriceClass_PRICE_CLASS_100,
 		MinimumProtocolVersion: awscloudfront.SecurityPolicyProtocol_TLS_V1_2_2021,

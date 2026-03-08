@@ -1,11 +1,11 @@
 <template>
   <div class="app">
-    <ExamplePage />
+    <WeddingHome />
   </div>
 </template>
 
 <script setup>
-import ExamplePage from './components/ExamplePage.vue'
+import WeddingHome from './components/WeddingHome.vue'
 </script>
 
 <style scoped>

@@ -28,6 +28,7 @@ func main() {
 		)
 		r.Get("/health", handlers.Health)
 		r.Get("/error", handlers.Error)
+		r.Get("/version", handlers.Version)
 	})
 
 	http.ListenAndServe(":8080", r)
