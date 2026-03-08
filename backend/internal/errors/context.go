@@ -19,9 +19,12 @@ func HTTPErrorFromContext(ctx context.Context) *httpErrorT {
 	return nil
 }
 
-// SetHTTPError sets the error in the request context. The context holds a *httpErrorT so the middleware sees updates after the handler returns.
+// SetHTTPError sets the error in the request context if none is set yet. The first error set wins (first failure point in the chain).
 func SetHTTPError(ctx context.Context, err *httpErrorT) {
-	if p, ok := ctx.Value(httpErrorContextKey).(**httpErrorT); ok && p != nil {
+	if err == nil {
+		return
+	}
+	if p, ok := ctx.Value(httpErrorContextKey).(**httpErrorT); ok && p != nil && *p == nil {
 		*p = err
 	}
 }

@@ -11,7 +11,7 @@ type Entry struct {
 }
 
 // item is the raw DynamoDB item (includes GSI keys for by-created index).
-type item struct {
+type Item struct {
 	ID        string `dynamodbav:"id"`
 	GSIPk     string `dynamodbav:"gsiPk"`
 	CreatedAt string `dynamodbav:"createdAt"`

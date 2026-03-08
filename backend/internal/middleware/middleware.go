@@ -2,10 +2,13 @@ package middleware
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"net/http"
 	"strings"
 	"time"
+
+	httpErrors "bitbucket.org/atlassian/unsw-comp3900-app/internal/errors"
 )
 
 type contextKeyT string
@@ -100,7 +103,7 @@ func (w *responseWriter) Write(b []byte) (int, error) {
 }
 
 // ContentTypeJSON sets Content-Type: application/json on all responses.
-func ContentTypeJSON(next http.Handler) http.Handler {
+func ResponseContentTypeJSON(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		next.ServeHTTP(w, r)
@@ -121,8 +124,23 @@ func RequireAcceptJSON(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusNotAcceptable)
-		w.Write([]byte(`{"error":"Accept must be application/json"}`))
+		httpErrors.SetHTTPError(r.Context(), httpErrors.HTTPError(http.StatusNotAcceptable, errors.New("Accept must be application/json")))
+	})
+}
+
+// RequireContentTypeJSONForBody rejects POST, PUT, PATCH requests that do not have Content-Type: application/json.
+// Returns 415 Unsupported Media Type. GET and other methods without a body are not checked.
+func RequireContentTypeJSONForBody(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost && r.Method != http.MethodPut && r.Method != http.MethodPatch {
+			next.ServeHTTP(w, r)
+			return
+		}
+		ct := r.Header.Get("Content-Type")
+		if strings.TrimSpace(strings.Split(ct, ";")[0]) == "application/json" {
+			next.ServeHTTP(w, r)
+			return
+		}
+		httpErrors.SetHTTPError(r.Context(), httpErrors.HTTPError(http.StatusUnsupportedMediaType, errors.New("Content-Type must be application/json")))
 	})
 }

@@ -20,7 +20,7 @@ func (c *Client) CreateEntry(ctx context.Context, name, message string) (*Entry,
 	now := time.Now().UTC()
 	createdAtStr := now.Format(time.RFC3339)
 
-	it := item{
+	it := Item{
 		ID:        id,
 		GSIPk:     gsiPkValue,
 		CreatedAt: createdAtStr,

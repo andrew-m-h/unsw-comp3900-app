@@ -1,9 +1,8 @@
 # Local integration testing: LocalStack (AWS emulator) + Backend (Go API) + Frontend (static).
 # Usage:
-#   1. Create DynamoDB table in LocalStack (once): make localstack-init
-#   2. Start stack: docker compose up -d
+#   2. Start stack: make local-up
 #   3. Backend API: http://localhost:8080  Frontend: http://localhost:3000  LocalStack: http://localhost:4566
-#   4. Stop: docker compose down
+#   4. Stop: make local-down
 
 services:
   localstack:
