@@ -50,7 +50,42 @@
     <section class="section message-section">
       <h2>Leave us a message</h2>
       <p class="intro">We’d love to hear from you.</p>
-      <p class="placeholder">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut enim ad minim veniam.</p>
+
+      <form class="guestbook-form" @submit.prevent="onSubmit">
+        <label class="form-label" for="guestbook-name">Your name</label>
+        <input
+          id="guestbook-name"
+          v-model="form.name"
+          type="text"
+          class="form-input"
+          placeholder="Your name"
+          required
+        />
+        <label class="form-label" for="guestbook-message">Message</label>
+        <textarea
+          id="guestbook-message"
+          v-model="form.message"
+          class="form-textarea"
+          placeholder="Your message..."
+          rows="3"
+          required
+        />
+        <p v-if="submitError" class="form-error">{{ submitError }}</p>
+        <button type="submit" class="form-submit" :disabled="submitting">
+          {{ submitting ? 'Sending…' : 'Send message' }}
+        </button>
+      </form>
+
+      <div v-if="loading" class="guestbook-loading">Loading messages…</div>
+      <div v-else-if="loadError" class="guestbook-error">{{ loadError }}</div>
+      <ul v-else-if="entries.length" class="guestbook-list">
+        <li v-for="entry in entries" :key="entry.id" class="guestbook-entry">
+          <p class="guestbook-entry-name">{{ entry.name }}</p>
+          <p class="guestbook-entry-message">{{ entry.message }}</p>
+          <time class="guestbook-entry-date" :datetime="entry.createdAt">{{ formatDate(entry.createdAt) }}</time>
+        </li>
+      </ul>
+      <p v-else class="guestbook-empty">No messages yet. Be the first to leave one!</p>
     </section>
 
     <footer class="footer">
@@ -60,6 +95,55 @@
 </template>
 
 <script setup>
+import { ref, onMounted } from 'vue'
+import { listEntries, createEntry } from '../api/guestbook.js'
+
+const entries = ref([])
+const loading = ref(true)
+const loadError = ref('')
+const form = ref({ name: '', message: '' })
+const submitting = ref(false)
+const submitError = ref('')
+
+function formatDate(iso) {
+  if (!iso) return ''
+  const d = new Date(iso)
+  return d.toLocaleDateString(undefined, { dateStyle: 'medium' }) + ' at ' + d.toLocaleTimeString(undefined, { timeStyle: 'short' })
+}
+
+async function loadMessages() {
+  loading.value = true
+  loadError.value = ''
+  try {
+    entries.value = await listEntries()
+  } catch (e) {
+    loadError.value = e.message || 'Failed to load messages.'
+  } finally {
+    loading.value = false
+  }
+}
+
+async function onSubmit() {
+  const name = (form.value.name || '').trim()
+  const message = (form.value.message || '').trim()
+  if (!name || !message) {
+    submitError.value = 'Please enter your name and message.'
+    return
+  }
+  submitError.value = ''
+  submitting.value = true
+  try {
+    const created = await createEntry({ name, message })
+    entries.value = [created, ...entries.value]
+    form.value = { name: '', message: '' }
+  } catch (e) {
+    submitError.value = e.message || 'Failed to send message.'
+  } finally {
+    submitting.value = false
+  }
+}
+
+onMounted(loadMessages)
 </script>
 
 <style scoped>
@@ -194,6 +278,111 @@
 .message-section .placeholder {
   margin: 0;
   font-size: 0.9rem;
+  color: var(--color-muted);
+}
+
+.guestbook-form {
+  text-align: left;
+  max-width: 24rem;
+  margin: 0 auto 2rem;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin: 0 0 0.35rem;
+  color: var(--color-text);
+}
+
+.form-input,
+.form-textarea {
+  width: 100%;
+  font: inherit;
+  font-size: 0.95rem;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.form-textarea {
+  resize: vertical;
+  min-height: 4rem;
+}
+
+.form-error {
+  margin: -0.5rem 0 0.75rem;
+  font-size: 0.9rem;
+  color: #c53030;
+}
+
+.form-submit {
+  font: inherit;
+  color: var(--color-bg);
+  background: var(--color-accent);
+  border: none;
+  border-radius: 8px;
+  padding: 0.5rem 1.25rem;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.form-submit:hover:not(:disabled) {
+  background: var(--color-accent-hover);
+}
+
+.form-submit:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.guestbook-loading,
+.guestbook-error,
+.guestbook-empty {
+  font-size: 0.95rem;
+  color: var(--color-muted);
+  margin: 0;
+}
+
+.guestbook-error {
+  color: #c53030;
+}
+
+.guestbook-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  text-align: left;
+}
+
+.guestbook-entry {
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.guestbook-entry:last-child {
+  border-bottom: none;
+}
+
+.guestbook-entry-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin: 0 0 0.25rem;
+  color: var(--color-text);
+}
+
+.guestbook-entry-message {
+  margin: 0 0 0.35rem;
+  font-size: 0.95rem;
+  color: var(--color-text);
+  white-space: pre-wrap;
+}
+
+.guestbook-entry-date {
+  font-size: 0.8rem;
   color: var(--color-muted);
 }
 
