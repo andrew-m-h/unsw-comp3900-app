@@ -10,6 +10,7 @@ import * as guestbook from '../api/guestbook.js'
 vi.mock('../api/guestbook.js', () => ({
   listEntries: vi.fn(),
   createEntry: vi.fn(),
+  deleteEntry: vi.fn(),
 }))
 
 /** Wait for async work (e.g. loadMessages) and Vue to re-render */
