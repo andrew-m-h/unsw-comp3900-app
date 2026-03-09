@@ -1,5 +1,5 @@
 .PHONY: build run tidy clean docker-build docker-push
-.PHONY: frontend-install frontend-build frontend-dev frontend-preview frontend-clean
+.PHONY: frontend-install frontend-build frontend-dev frontend-preview frontend-clean frontend-test
 .PHONY: local-up local-down local-resources-up local-resources-down localstack-init unittest e2e integration
 
 IMAGE ?= unsw-comp3900-app
@@ -42,6 +42,10 @@ frontend-preview:
 
 frontend-clean:
 	rm -rf $(FRONTEND_DIR)/dist $(FRONTEND_DIR)/node_modules
+
+# Frontend unit and component tests (Vitest). Run after frontend-install.
+frontend-test:
+	cd $(FRONTEND_DIR) && npm run test:run
 
 version-bump:
 	cd $(BACKEND_DIR) && go tool goversion -version-file=version.go patch

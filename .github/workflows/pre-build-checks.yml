@@ -32,6 +32,12 @@ jobs:
       - name: Run unit tests
         run: make unittest
 
+      - name: Install frontend dependencies
+        run: make frontend-install
+
+      - name: Run frontend tests
+        run: make frontend-test
+
       - name: Build frontend
         run: make frontend-build
 
