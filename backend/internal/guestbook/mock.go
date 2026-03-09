@@ -11,11 +11,12 @@ import (
 // MockDDB is a DynamoDB API implementation for tests. Set the Out/Err fields to control behaviour.
 // Use from this package or other packages that need a guestbook.Client with a fake DDB.
 type MockDDB struct {
-	QueryOut   *dynamodb.QueryOutput
-	QueryErr   error
-	GetItemOut *dynamodb.GetItemOutput
-	GetItemErr error
-	PutItemErr error
+	QueryOut      *dynamodb.QueryOutput
+	QueryErr      error
+	GetItemOut    *dynamodb.GetItemOutput
+	GetItemErr    error
+	PutItemErr    error
+	DeleteItemErr error
 }
 
 // Query returns MockDDB.QueryOut and MockDDB.QueryErr.
@@ -31,4 +32,9 @@ func (m *MockDDB) GetItem(ctx context.Context, params *dynamodb.GetItemInput, op
 // PutItem returns an empty PutItemOutput and MockDDB.PutItemErr.
 func (m *MockDDB) PutItem(ctx context.Context, params *dynamodb.PutItemInput, optFns ...func(*dynamodb.Options)) (*dynamodb.PutItemOutput, error) {
 	return &dynamodb.PutItemOutput{}, m.PutItemErr
+}
+
+// DeleteItem returns an empty DeleteItemOutput and MockDDB.DeleteItemErr.
+func (m *MockDDB) DeleteItem(ctx context.Context, params *dynamodb.DeleteItemInput, optFns ...func(*dynamodb.Options)) (*dynamodb.DeleteItemOutput, error) {
+	return &dynamodb.DeleteItemOutput{}, m.DeleteItemErr
 }

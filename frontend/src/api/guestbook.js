@@ -54,3 +54,21 @@ export async function createEntry({ name, message }) {
   }
   return res.json()
 }
+
+/**
+ * Delete a guestbook entry by id.
+ * @param {string} id - Entry id
+ * @returns {Promise<void>}
+ * @throws On failure; err.status is 404 when entry not found.
+ */
+export async function deleteEntry(id) {
+  const res = await fetch(`${baseURL}/api/guestbook/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    headers: { Accept: 'application/json' },
+  })
+  if (!res.ok) {
+    const err = new Error(`Guestbook delete failed: ${res.status}`)
+    err.status = res.status
+    throw err
+  }
+}

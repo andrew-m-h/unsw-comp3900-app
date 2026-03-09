@@ -73,3 +73,24 @@ func GuestbookGet(client *guestbook.Client) http.HandlerFunc {
 		_ = json.NewEncoder(w).Encode(entry)
 	}
 }
+
+// DeleteGuestbookEntry deletes a guestbook entry by id. DELETE /api/guestbook/{id} → 204 or 404 if not found.
+func DeleteGuestbookEntry(client *guestbook.Client) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id := chi.URLParam(r, "id")
+		if id == "" {
+			httpErrors.SetHTTPError(r.Context(), httpErrors.HTTPError(http.StatusBadRequest, errors.New("id is required")))
+			return
+		}
+		err := client.DeleteEntry(r.Context(), id)
+		if err != nil {
+			if errors.Is(err, guestbook.ErrNotFound) {
+				httpErrors.SetHTTPError(r.Context(), httpErrors.HTTPError(http.StatusNotFound, err))
+				return
+			}
+			httpErrors.SetHTTPError(r.Context(), httpErrors.HTTPError(http.StatusInternalServerError, err))
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}
+}

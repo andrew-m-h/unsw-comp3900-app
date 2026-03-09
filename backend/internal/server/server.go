@@ -41,6 +41,7 @@ func NewHandler(gbClient *guestbook.Client, log *slog.Logger, version string) ht
 		r.Route("/guestbook", func(r chi.Router) {
 			r.Get("/", guestbookList)
 			r.Post("/", guestbookCreate)
+			r.Delete("/{id}", handlers.DeleteGuestbookEntry(gbClient))
 			r.Get("/{id}", handlers.GuestbookGet(gbClient))
 		})
 	})

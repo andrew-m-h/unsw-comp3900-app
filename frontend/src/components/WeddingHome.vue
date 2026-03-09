@@ -104,7 +104,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { listEntries, createEntry } from '../api/guestbook.js'
+import { listEntries, createEntry, deleteEntry } from '../api/guestbook.js'
 
 const entries = ref([])
 const loading = ref(true)
@@ -131,8 +131,9 @@ async function loadMessages() {
   }
 }
 
-function removeEntry(id) {
+async function removeEntry(id) {
   entries.value = entries.value.filter((e) => e.id !== id)
+  await deleteEntry(id)
 }
 
 async function onSubmit() {
