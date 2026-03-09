@@ -80,6 +80,14 @@
       <div v-else-if="loadError" class="guestbook-error">{{ loadError }}</div>
       <ul v-else-if="entries.length" class="guestbook-list">
         <li v-for="entry in entries" :key="entry.id" class="guestbook-entry">
+          <button
+            type="button"
+            class="guestbook-entry-delete"
+            aria-label="Remove comment"
+            @click="removeEntry(entry.id)"
+          >
+            ×
+          </button>
           <p class="guestbook-entry-name">{{ entry.name }}</p>
           <p class="guestbook-entry-message">{{ entry.message }}</p>
           <time class="guestbook-entry-date" :datetime="entry.createdAt">{{ formatDate(entry.createdAt) }}</time>
@@ -121,6 +129,10 @@ async function loadMessages() {
   } finally {
     loading.value = false
   }
+}
+
+function removeEntry(id) {
+  entries.value = entries.value.filter((e) => e.id !== id)
 }
 
 async function onSubmit() {
@@ -359,8 +371,30 @@ onMounted(loadMessages)
 }
 
 .guestbook-entry {
-  padding: 1rem 0;
+  position: relative;
+  padding: 1rem 1.75rem 1rem 0;
   border-bottom: 1px solid var(--color-border);
+}
+
+.guestbook-entry-delete {
+  position: absolute;
+  top: 0.5rem;
+  right: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  font-size: 1.25rem;
+  line-height: 1;
+  color: var(--color-muted);
+  background: none;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.guestbook-entry-delete:hover {
+  color: var(--color-text);
+  background: var(--color-border);
 }
 
 .guestbook-entry:last-child {
