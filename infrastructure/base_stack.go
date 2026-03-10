@@ -36,22 +36,8 @@ func NewBaseStack(scope constructs.Construct, id string, props *BaseStackProps) 
 		EnforceSSL:        jsii.Bool(true),
 		Versioned:         jsii.Bool(false),
 	})
-	// Allow CloudFront (OAC) to read objects; app stack uses this bucket as /static/* origin
-	awss3.NewCfnBucketPolicy(stack, jsii.String("StaticAssetsBucketPolicy"), &awss3.CfnBucketPolicyProps{
-		Bucket: staticBucket.BucketName(),
-		PolicyDocument: map[string]interface{}{
-			"Version": "2012-10-17",
-			"Statement": []interface{}{
-				map[string]interface{}{
-					"Sid":       "AllowCloudFrontServicePrincipal",
-					"Effect":    "Allow",
-					"Principal": map[string]interface{}{"Service": "cloudfront.amazonaws.com"},
-					"Action":    "s3:GetObject",
-					"Resource":  awscdk.Fn_Join(jsii.String(""), &[]*string{staticBucket.BucketArn(), jsii.String("/*")}),
-				},
-			},
-		},
-	})
+	// Allow CloudFront (OAC) to read objects under static/; app stack serves this bucket at /static/*.
+	staticBucket.GrantRead(awsiam.NewServicePrincipal(jsii.String("cloudfront.amazonaws.com"), nil), jsii.String("static/*"))
 
 	// ECR repository
 	ecrRepo := awsecr.NewRepository(stack, jsii.String("AppRepo"), &awsecr.RepositoryProps{
