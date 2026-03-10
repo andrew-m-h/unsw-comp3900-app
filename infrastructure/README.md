@@ -2,6 +2,30 @@
 
 This CDK app defines **two stacks** that reference each other via CloudFormation exports:
 
+```mermaid
+architecture-beta
+    group api(cloud)[API]
+    group app(cloud)[APP]
+    group internet(internet)[Internet]
+
+    service user(internet)[User] in internet
+    service github(internet)[Github] in internet
+
+    service cf(cloud)[CloudFront CDN] in app
+    service s3(disk)[S3 Bucket] in app
+    service runner(server)[AWS App Runner] in api
+    service ecr(server)[ECR]
+    service ddb(database)[DynamoDB] in api
+
+    user:R --> L:cf
+    cf:T <-- B:s3
+    cf:R <--> L:runner
+    runner:R <--> L:ddb
+    github:R --> L:ecr
+    github:T --> L:s3
+    ecr:R --> T:runner
+```
+
 **Base stack** (`base_stack.go`): S3 bucket for static assets, ECR repository, IAM role for App Runner to pull from ECR, and optionally the GitHub OIDC role for ECR push. Exports: ECR URI, App Runner ECR access role ARN, S3 bucket name.
 
 **App stack** (`app_stack.go`): App Runner service (uses ECR and role from base) and CloudFront distribution (App Runner as default origin, S3 for `/static/*`). Imports the base stack outputs.
